@@ -21,6 +21,7 @@ import {
   useKerfStore,
 } from "@/lib/store";
 import { ConfidenceDot } from "@/components/TrackedValue";
+import { ExplanationPanel } from "@/components/ai/ExplanationPanel";
 
 function facLabel(f: PackagingFacility) {
   const ap = f.name.match(/AP\d[\d/]*/)?.[0];
@@ -217,17 +218,19 @@ function ImpactReadout({
       <div className="space-y-1.5 font-mono text-xs">
         <div className="flex justify-between gap-3">
           <span className="text-ink/55">direct capacity lost</span>
-          <span className="text-ink">
+          <span className="flex items-center gap-1.5 text-ink">
             {num(cascade.directLoss.lostCapacity)} {cascade.directLoss.capacityUnit}{" "}
             <span className="text-ink/45">
               ({num(cascade.directLoss.lostFraction * 100)}%)
             </span>
+            <ConfidenceDot confidence={cascade.weakestInput} />
           </span>
         </div>
         <div className="flex justify-between gap-3">
           <span className="text-ink/55">systemic severity</span>
-          <span className="text-rose">
+          <span className="flex items-center gap-1.5 text-rose">
             {num(cascade.systemicSeverity, 2)} · {cascade.severityLabel}
+            <ConfidenceDot confidence={cascade.weakestInput} />
           </span>
         </div>
       </div>
@@ -286,6 +289,34 @@ function ImpactReadout({
         modeled projection from public-data inputs — not a forecast. rests on{" "}
         <span className="text-rose">{cascade.weakestInput}</span> data.
       </p>
+
+      {/* AI narrative over the computed figures (visually distinct, green) */}
+      <ExplanationPanel
+        kind="cascade"
+        depth="deep"
+        idleLabel="explain this scenario"
+        getPayload={() => ({
+          trigger: {
+            name: cascade.trigger.name,
+            operator: cascade.trigger.operator,
+            capacityDeltaPct: cascade.trigger.capacityDeltaPct,
+            capacityUnit: cascade.trigger.capacityUnit,
+          },
+          directLoss: {
+            lostCapacity: cascade.directLoss.lostCapacity,
+            lostFraction: cascade.directLoss.lostFraction,
+          },
+          systemicSeverity: cascade.systemicSeverity,
+          severityLabel: cascade.severityLabel,
+          affectedChips: cascade.affectedChips.map((c) => ({
+            name: c.name,
+            estimatedCapacityHitPct: c.estimatedCapacityHitPct,
+          })),
+          weakestInput: cascade.weakestInput,
+          baselineHhi: baseHhi,
+          scenarioHhi: effHhi,
+        })}
+      />
     </div>
   );
 }
