@@ -16,6 +16,7 @@ import {
   reportedFacts,
 } from "@/lib/data/case2021";
 import { SiteNav } from "@/components/SiteNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { CascadeReadout } from "@/components/CascadeReadout";
 import { ExplanationPanel } from "@/components/ai/ExplanationPanel";
 import { ConfidenceDot } from "@/components/TrackedValue";
@@ -225,6 +226,8 @@ export default function CasePage() {
               </Link>
             </div>
           </Section>
+
+          <SiteFooter />
         </main>
       </div>
     </div>

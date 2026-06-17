@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 
 import { SiteNav } from "@/components/SiteNav";
+import { SiteFooter } from "@/components/SiteFooter";
 import { ScenarioConsole } from "@/components/console/ScenarioConsole";
 
 // cytoscape touches `window` — load the graph client-only.
@@ -46,6 +47,8 @@ export default function NetworkPage() {
             <ScenarioConsole />
             <CascadeGraph />
           </div>
+
+          <SiteFooter />
         </main>
       </div>
     </div>

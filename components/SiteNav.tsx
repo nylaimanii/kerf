@@ -7,6 +7,7 @@ const LINKS = [
   { href: "/", label: "overview" },
   { href: "/network", label: "network" },
   { href: "/case", label: "2021 case" },
+  { href: "/brief", label: "brief" },
 ];
 
 export function SiteNav() {
