@@ -6,6 +6,7 @@ import {
   useKerfStore,
 } from "@/lib/store";
 import { SiteNav } from "@/components/SiteNav";
+import { ScenarioBanner } from "@/components/ScenarioBanner";
 import { Hero } from "@/components/dashboard/Hero";
 import { ConcentrationCard } from "@/components/dashboard/ConcentrationCard";
 import { SpofCard } from "@/components/dashboard/SpofCard";
@@ -23,6 +24,7 @@ export default function Dashboard() {
         <SiteNav />
 
         <main className="pb-16">
+          <ScenarioBanner />
           <Hero conc={conc} />
 
           <div className="mt-8 grid gap-5 lg:grid-cols-2">

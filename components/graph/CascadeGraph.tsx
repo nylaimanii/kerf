@@ -232,9 +232,12 @@ function stylesheet(monoFamily: string): CyStyle[] {
         "text-max-width": "100px",
         "text-valign": "center",
         "text-halign": "center",
-        width: "data(sizePx)",
-        height: "data(sizePx)",
       },
+    },
+    {
+      // size only the data nodes (country compounds auto-size from padding)
+      selector: "node.facility, node.chip",
+      style: { width: "data(sizePx)", height: "data(sizePx)" },
     },
     {
       selector: "node.facility",

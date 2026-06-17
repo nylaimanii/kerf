@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic";
 
 import { SiteNav } from "@/components/SiteNav";
+import { ScenarioConsole } from "@/components/console/ScenarioConsole";
 
 // cytoscape touches `window` — load the graph client-only.
 const CascadeGraph = dynamic(
@@ -39,7 +40,12 @@ export default function NetworkPage() {
             </p>
           </section>
 
-          <CascadeGraph />
+          {/* console + graph on one screen: drive a control → graph degrades →
+              impact numbers move, all visible together. */}
+          <div className="grid gap-5 lg:grid-cols-[360px_1fr]">
+            <ScenarioConsole />
+            <CascadeGraph />
+          </div>
         </main>
       </div>
     </div>

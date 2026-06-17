@@ -99,39 +99,51 @@ export interface OperatorConcentrationView {
 // The meaningful concentration number is the packaging (wafers/mo) pool — mixing
 // wafer and stack units would let HBM dominate as an artifact. We pick the
 // largest single-unit pool to report on.
-const _operatorConcentration = memoizeArgs(
-  (facilities: PackagingFacility[]): OperatorConcentrationView => {
-    const byUnit = new Map<string, PackagingFacility[]>();
-    for (const f of facilities) {
-      const arr = byUnit.get(f.capacityUnit) ?? [];
-      arr.push(f);
-      byUnit.set(f.capacityUnit, arr);
+function computeConcentration(
+  facilities: PackagingFacility[],
+): OperatorConcentrationView {
+  const byUnit = new Map<string, PackagingFacility[]>();
+  for (const f of facilities) {
+    const arr = byUnit.get(f.capacityUnit) ?? [];
+    arr.push(f);
+    byUnit.set(f.capacityUnit, arr);
+  }
+  // pick the pool with the most facilities (the packaging pool in our seed)
+  let pool: PackagingFacility[] = facilities;
+  let best = -1;
+  for (const arr of byUnit.values()) {
+    if (arr.length > best) {
+      best = arr.length;
+      pool = arr;
     }
-    // pick the pool with the most facilities (the packaging pool in our seed)
-    let pool: PackagingFacility[] = facilities;
-    let best = -1;
-    for (const arr of byUnit.values()) {
-      if (arr.length > best) {
-        best = arr.length;
-        pool = arr;
-      }
-    }
-    const c = operatorConcentration(pool);
-    return {
-      hhi: c.hhi,
-      label: c.label,
-      weakestInput: c.weakestInput,
-      byOperator: c.byOperator,
-      mixedUnits: c.mixedUnits,
-      capacityUnit: c.capacityUnit,
-    };
-  },
-);
+  }
+  const c = operatorConcentration(pool);
+  return {
+    hhi: c.hhi,
+    label: c.label,
+    weakestInput: c.weakestInput,
+    byOperator: c.byOperator,
+    mixedUnits: c.mixedUnits,
+    capacityUnit: c.capacityUnit,
+  };
+}
+
+// Two SEPARATE memo caches so the perturbed and baseline numbers can both be
+// read in the same render (the console shows them side by side). Sharing one
+// memoize-one cache would thrash when called with two different facility arrays.
+const _effConcentration = memoizeArgs(computeConcentration);
+const _baseConcentration = memoizeArgs(computeConcentration);
 
 export const selectOperatorConcentration = (
   state: KerfState,
 ): OperatorConcentrationView =>
-  _operatorConcentration(selectEffectiveFacilities(state));
+  _effConcentration(selectEffectiveFacilities(state));
+
+/** Always the baseline (un-perturbed) concentration, even with a scenario active
+ *  — for before→after comparison in the what-if console. */
+export const selectBaselineOperatorConcentration = (
+  state: KerfState,
+): OperatorConcentrationView => _baseConcentration(state.facilities);
 
 // ── single points of failure (baseline or perturbed) ─────────────────────────
 const _spofs = memoizeArgs(
