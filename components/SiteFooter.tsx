@@ -37,6 +37,20 @@ export function SiteFooter() {
           <Link href="/brief" className="transition-colors hover:text-ink">brief</Link>
         </nav>
       </div>
+
+      {/* quiet builder credit */}
+      <p className="mt-6 font-mono text-[11px] lowercase text-ink/40">
+        built by{" "}
+        <a
+          href="https://github.com/nylaimanii"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline-offset-2 transition-colors hover:text-ink"
+        >
+          nyla
+        </a>
+      </p>
     </footer>
   );
 }
+
