@@ -23,10 +23,12 @@ function makeState(scenario: DisruptionScenario | null = null): KerfState {
     activeScenario: scenario,
     selectedChipId: null,
     selectedFacilityId: null,
+    lastExplanation: null,
     setScenario: () => {},
     clearScenario: () => {},
     selectChip: () => {},
     selectFacility: () => {},
+    setExplanation: () => {},
   };
 }
 

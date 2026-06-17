@@ -145,3 +145,26 @@
     @apply font-sans;
   }
 }
+
+/* ── print: the risk brief must look clean as a saved PDF ── */
+/* force background colors (confidence dots, tints) to render in print */
+.print-exact,
+.print-exact * {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  @page {
+    margin: 14mm;
+  }
+  body {
+    background: #ffffff;
+  }
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+}

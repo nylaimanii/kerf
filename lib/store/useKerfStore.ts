@@ -35,11 +35,22 @@ export interface KerfState {
   selectedChipId: string | null;
   selectedFacilityId: string | null;
 
+  // ── last AI narrative the user generated (so it can travel into the brief).
+  // contextKey ties it to the exact state it described, so a stale narrative is
+  // never shown for a different scenario. ──
+  lastExplanation: {
+    contextKey: string;
+    kind: string;
+    text: string;
+    tier: string;
+  } | null;
+
   // ── actions ──
   setScenario: (scenario: DisruptionScenario) => void;
   clearScenario: () => void;
   selectChip: (id: string | null) => void;
   selectFacility: (id: string | null) => void;
+  setExplanation: (e: KerfState["lastExplanation"]) => void;
 }
 
 export const useKerfStore = create<KerfState>((set) => ({
@@ -50,9 +61,11 @@ export const useKerfStore = create<KerfState>((set) => ({
   activeScenario: null,
   selectedChipId: null,
   selectedFacilityId: null,
+  lastExplanation: null,
 
   setScenario: (scenario) => set({ activeScenario: scenario }),
   clearScenario: () => set({ activeScenario: null }),
   selectChip: (id) => set({ selectedChipId: id }),
   selectFacility: (id) => set({ selectedFacilityId: id }),
+  setExplanation: (e) => set({ lastExplanation: e }),
 }));

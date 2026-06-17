@@ -21,6 +21,7 @@ import {
   useKerfStore,
 } from "@/lib/store";
 import { CascadeReadout } from "@/components/CascadeReadout";
+import { ExportBriefButton } from "@/components/ExportBriefButton";
 import { ExplanationPanel } from "@/components/ai/ExplanationPanel";
 
 function facLabel(f: PackagingFacility) {
@@ -179,7 +180,16 @@ export function ScenarioConsole() {
       </div>
 
       {/* impact readout */}
-      <ImpactReadout cascade={cascade} baseHhi={baseConc.hhi} effHhi={effConc.hhi} />
+      <ImpactReadout
+        cascade={cascade}
+        baseHhi={baseConc.hhi}
+        effHhi={effConc.hhi}
+        scenarioId={activeScenario?.id}
+      />
+
+      <div className="flex justify-end">
+        <ExportBriefButton />
+      </div>
     </aside>
   );
 }
@@ -188,10 +198,12 @@ function ImpactReadout({
   cascade,
   baseHhi,
   effHhi,
+  scenarioId,
 }: {
   cascade: ReturnType<typeof selectActiveCascade>;
   baseHhi: number;
   effHhi: number;
+  scenarioId?: string;
 }) {
   if (!cascade) {
     return (
@@ -208,6 +220,7 @@ function ImpactReadout({
         kind="cascade"
         depth="deep"
         idleLabel="explain this scenario"
+        contextKey={scenarioId ? `cascade:${scenarioId}` : undefined}
         getPayload={() => ({
           trigger: {
             name: cascade.trigger.name,

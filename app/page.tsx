@@ -7,6 +7,7 @@ import {
 } from "@/lib/store";
 import { SiteNav } from "@/components/SiteNav";
 import { ScenarioBanner } from "@/components/ScenarioBanner";
+import { ExportBriefButton } from "@/components/ExportBriefButton";
 import { ExplanationPanel } from "@/components/ai/ExplanationPanel";
 import { Hero } from "@/components/dashboard/Hero";
 import { ConcentrationCard } from "@/components/dashboard/ConcentrationCard";
@@ -18,6 +19,7 @@ export default function Dashboard() {
   const spofs = useKerfStore(selectSPOFs);
   const selectedChipId = useKerfStore((s) => s.selectedChipId);
   const selectChip = useKerfStore((s) => s.selectChip);
+  const activeScenario = useKerfStore((s) => s.activeScenario);
 
   return (
     <div className="min-h-screen bg-bone">
@@ -27,6 +29,10 @@ export default function Dashboard() {
         <main className="pb-16">
           <ScenarioBanner />
           <Hero conc={conc} />
+
+          <div className="mt-2 flex justify-end">
+            <ExportBriefButton />
+          </div>
 
           <div className="mt-8 grid gap-5 lg:grid-cols-2">
             <ConcentrationCard conc={conc} />
@@ -43,6 +49,7 @@ export default function Dashboard() {
               kind="concentration"
               depth="deep"
               idleLabel="explain the concentration"
+              contextKey={`concentration:${activeScenario?.id ?? "baseline"}`}
               getPayload={() => ({
                 hhi: conc.hhi,
                 label: conc.label,

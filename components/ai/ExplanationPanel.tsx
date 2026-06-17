@@ -13,6 +13,8 @@
 import { useState } from "react";
 import { Sparkles } from "lucide-react";
 
+import { useKerfStore } from "@/lib/store";
+
 type Status = "idle" | "loading" | "done" | "error";
 
 export function ExplanationPanel({
@@ -20,11 +22,15 @@ export function ExplanationPanel({
   depth = "deep",
   getPayload,
   idleLabel,
+  contextKey,
 }: {
   kind: "cascade" | "concentration";
   depth?: "fast" | "deep";
   getPayload: () => Record<string, unknown>;
   idleLabel: string;
+  /** ties the saved narrative to the exact state it described, so the brief
+   *  never shows a stale explanation for a different scenario */
+  contextKey?: string;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [explanation, setExplanation] = useState("");
@@ -44,6 +50,15 @@ export function ExplanationPanel({
       }
       setExplanation(data.explanation);
       setStatus("done");
+      // persist so it can travel into the risk brief
+      if (contextKey) {
+        useKerfStore.getState().setExplanation({
+          contextKey,
+          kind,
+          text: data.explanation,
+          tier: data.tier ?? "",
+        });
+      }
     } catch {
       setStatus("error");
     }
