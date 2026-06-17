@@ -56,6 +56,7 @@ export default function Dashboard() {
             {/* AI narrative over the computed concentration + SPOF picture */}
             <div className="mt-5">
               <ExplanationPanel
+                key={`concentration:${activeScenario?.id ?? "baseline"}`}
                 kind="concentration"
                 depth="deep"
                 idleLabel="explain the concentration"

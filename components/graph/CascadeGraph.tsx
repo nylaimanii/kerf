@@ -193,7 +193,8 @@ function buildElements(
           source: c.id,
           target: d.facilityId,
           weight: d.weight.value,
-          width: 1.3 + d.weight.value * 10, // ~1.5–7.5px, weight differences pop
+          // floor at ~3px so even low-weight edges are an easy tap/click target
+          width: 3 + d.weight.value * 9, // ~3–9px
           hit: 0,
         },
       });
@@ -227,9 +228,9 @@ function stylesheet(monoFamily: string): CyStyle[] {
         label: "data(label)",
         color: C.ink,
         "font-family": monoFamily,
-        "font-size": 11,
+        "font-size": 13,
         "text-wrap": "wrap",
-        "text-max-width": "100px",
+        "text-max-width": "110px",
         "text-valign": "center",
         "text-halign": "center",
       },
@@ -257,7 +258,7 @@ function stylesheet(monoFamily: string): CyStyle[] {
         shape: "ellipse",
         "border-color": C.ink,
         "border-width": 1.5,
-        "font-size": 13,
+        "font-size": 15,
       },
     },
     {
@@ -280,7 +281,7 @@ function stylesheet(monoFamily: string): CyStyle[] {
         label: "data(label)",
         color: C.ink60,
         "font-family": monoFamily,
-        "font-size": 11,
+        "font-size": 12,
         "text-valign": "top",
         "text-halign": "center",
         "text-margin-y": -8,
@@ -414,9 +415,11 @@ export default function CascadeGraph() {
       elements,
       layout: { name: "preset", fit: true, padding: 48 },
       style: stylesheet(`${monoFamily}, monospace`),
-      minZoom: 0.2,
+      // keep labels legible at the fitted default — don't let it zoom out too far
+      minZoom: 0.45,
       maxZoom: 2.5,
-      wheelSensitivity: 0.2,
+      // leave wheelSensitivity at the default (1) — a custom value triggers a
+      // cytoscape console warning and zooms unnaturally on mainstream mice.
     };
     const cy = cytoscape(cyOptions as unknown as cytoscape.CytoscapeOptions);
     cyRef.current = cy;

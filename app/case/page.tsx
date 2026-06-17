@@ -99,13 +99,18 @@ export default function CasePage() {
                   <dd className="mt-1 font-sans text-xs leading-snug text-ink/55">
                     {f.label}
                   </dd>
+                  {/* the actual citation, visible — not "trust me, it's in the file" */}
+                  <dd className="mt-2 border-t border-line pt-2 font-mono text-[10px] leading-snug text-ink/45">
+                    {f.value.provenance.source}
+                  </dd>
                 </div>
               ))}
             </dl>
-            <p className="mt-3 font-mono text-[11px] text-ink/45">
-              all four are widely reported public/analyst figures (
+            <p className="mt-3 font-mono text-[11px] leading-snug text-ink/45">
+              all four are widely reported public / analyst figures (
               <span className="inline-block size-[7px] translate-y-px rounded-full border border-ink/45" />{" "}
-              estimated) — sourced in the data file, not first-party disclosures.
+              estimated), not first-party disclosures. sources shown above; full
+              notes in the data file.
             </p>
           </Section>
 

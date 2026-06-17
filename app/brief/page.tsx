@@ -120,10 +120,16 @@ export default function BriefPage() {
             {operatorRows.map(([op, share]) => (
               <li key={op} className="flex justify-between gap-3 font-mono text-sm">
                 <span className="text-ink/70">{op}</span>
-                <span className="text-ink">{share.toFixed(1)}%</span>
+                <span className="flex items-center gap-1.5 text-ink">
+                  {share.toFixed(1)}%
+                  <ConfidenceDot confidence={conc.weakestInput} />
+                </span>
               </li>
             ))}
           </ul>
+          <p className="mt-2 font-mono text-[11px] text-ink/40">
+            shares shown to 1 decimal; HHI is computed from unrounded shares.
+          </p>
         </section>
 
         {/* SPOFs */}

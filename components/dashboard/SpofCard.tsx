@@ -1,4 +1,13 @@
 import type { SPOF } from "@/lib/engine";
+import { ConfidenceDot } from "@/components/TrackedValue";
+
+// show a dependency split (operator or country → share) as a compact mono line
+function splitLine(rec: Record<string, number>) {
+  return Object.entries(rec)
+    .sort((a, b) => b[1] - a[1])
+    .map(([k, v]) => `${k} ${Math.round(v * 100)}%`)
+    .join(" · ");
+}
 
 export function SpofCard({
   spofs,
@@ -7,7 +16,7 @@ export function SpofCard({
 }: {
   spofs: SPOF[];
   selectedChipId: string | null;
-  onSelect: (id: string) => void;
+  onSelect: (id: string | null) => void;
 }) {
   return (
     <article className="rounded-xl border border-line bg-bone p-6">
@@ -18,7 +27,8 @@ export function SpofCard({
         <span className="font-mono text-xs text-rose">{spofs.length}</span>
       </header>
       <p className="mb-6 font-sans text-sm text-ink/55">
-        chips whose supply concentrates past a single operator or country
+        chips whose supply concentrates past a single operator or country —
+        select one for its exposure breakdown
       </p>
 
       {spofs.length === 0 ? (
@@ -32,8 +42,9 @@ export function SpofCard({
               <li key={s.chipId}>
                 <button
                   type="button"
-                  onClick={() => onSelect(s.chipId)}
+                  onClick={() => onSelect(active ? null : s.chipId)}
                   aria-pressed={active}
+                  aria-expanded={active}
                   className={[
                     "group flex w-full items-start gap-3 rounded-lg border px-4 py-3 text-left transition-colors",
                     active
@@ -41,7 +52,6 @@ export function SpofCard({
                       : "border-line hover:border-rose/50 hover:bg-rose/5",
                   ].join(" ")}
                 >
-                  {/* risk tick — rose rule that grows on hover */}
                   <span
                     aria-hidden
                     className="mt-1 h-8 w-0.5 shrink-0 rounded-full bg-rose/60 transition-all group-hover:h-9"
@@ -63,6 +73,25 @@ export function SpofCard({
                         {r}
                       </span>
                     ))}
+
+                    {/* exposure breakdown — the honest payoff of the click */}
+                    {active && (
+                      <span className="mt-3 block space-y-1 border-t border-rose/20 pt-3 font-mono text-[11px] text-ink/70">
+                        <span className="block">
+                          <span className="text-ink/45">by operator: </span>
+                          {splitLine(s.exposure.byOperator)}
+                        </span>
+                        <span className="block">
+                          <span className="text-ink/45">by country: </span>
+                          {splitLine(s.exposure.byCountry)}
+                        </span>
+                        <span className="flex items-center gap-1.5 pt-0.5 text-ink/45">
+                          rests on
+                          <ConfidenceDot confidence={s.exposure.weakestInput} />
+                          {s.exposure.weakestInput}
+                        </span>
+                      </span>
+                    )}
                   </span>
                 </button>
               </li>

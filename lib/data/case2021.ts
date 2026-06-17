@@ -11,7 +11,8 @@
 //    The macro facts: ~$210B of 2021 auto revenue lost and ~7.7M vehicles not
 //    built (AlixPartners, 2021, widely reported); a modern vehicle uses ~1,000+
 //    chips; chips costing ~$1 idled vehicles worth tens of thousands; TSMC was
-//    reported to make a large majority (~70%) of the world's microcontrollers.
+//    reported to hold a large majority (~70%) of OUTSOURCED automotive-MCU
+//    foundry output (NOT microcontrollers overall — much of MCU is IDM in-house).
 //    These are real reporting — but they are estimates, NOT first-party
 //    disclosures, so they are graded "estimated", never "disclosed".
 //
@@ -54,7 +55,7 @@ export const caseFacilities: PackagingFacility[] = [
     monthlyCapacity: {
       value: 100000,
       provenance: modeled(
-        "TSMC was the dominant mature-node auto foundry; magnitude modeled. (Reported separately: ~70% of MCUs.)",
+        "TSMC was the dominant mature-node auto foundry; magnitude modeled. (Reported separately: ~70% of OUTSOURCED auto-MCU foundry output.)",
       ),
     },
   },
@@ -236,12 +237,15 @@ export const reportedFacts: ReportedFact[] = [
     },
   },
   {
-    label: "TSMC share of microcontrollers",
+    label: "TSMC share of outsourced auto-MCU foundry output",
     display: "~70%",
-    unit: "of MCUs",
+    unit: "of outsourced auto MCU",
     value: {
       value: 70,
-      provenance: reported("Analyst coverage, widely cited (2021)", "Reported estimate of TSMC's MCU foundry share."),
+      provenance: reported(
+        "Analyst coverage, widely cited (2021)",
+        "Narrowed claim: TSMC's share of OUTSOURCED automotive-MCU foundry output — not microcontrollers overall (much of MCU is made in-house by IDMs: Renesas, NXP, Infineon, ST).",
+      ),
     },
   },
 ];

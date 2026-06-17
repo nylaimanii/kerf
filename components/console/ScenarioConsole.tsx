@@ -84,6 +84,10 @@ export function ScenarioConsole() {
   const applyPreset = (p: Preset) => {
     const f = facilityById(p.facilityId);
     if (!f) return;
+    // sync the controls to the preset IMMEDIATELY (no desync window where the
+    // slider/dropdown lag the applied scenario) before committing it.
+    setFacilityId(p.facilityId);
+    setDelta(p.delta);
     setScenario({
       id: `preset-${p.key}`,
       label: p.label,
@@ -165,7 +169,9 @@ export function ScenarioConsole() {
         <div className="flex gap-2 pt-1">
           <button
             onClick={apply}
-            className="flex-1 rounded-md bg-ink px-3 py-2 font-mono text-xs text-bone transition-opacity hover:opacity-90"
+            disabled={delta === 0}
+            title={delta === 0 ? "set a capacity loss below 0% first" : undefined}
+            className="flex-1 rounded-md bg-ink px-3 py-2 font-mono text-xs text-bone transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             apply scenario
           </button>
@@ -217,6 +223,7 @@ function ImpactReadout({
     <CascadeReadout cascade={cascade} baselineHhi={baseHhi} scenarioHhi={effHhi}>
       {/* AI narrative over the computed figures (visually distinct, green) */}
       <ExplanationPanel
+        key={scenarioId ? `cascade:${scenarioId}` : "cascade:none"}
         kind="cascade"
         depth="deep"
         idleLabel="explain this scenario"

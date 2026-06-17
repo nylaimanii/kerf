@@ -10,7 +10,7 @@
 // note; the numbers it would describe are always already on screen.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sparkles } from "lucide-react";
 
 import { useKerfStore } from "@/lib/store";
@@ -28,29 +28,43 @@ export function ExplanationPanel({
   depth?: "fast" | "deep";
   getPayload: () => Record<string, unknown>;
   idleLabel: string;
-  /** ties the saved narrative to the exact state it described, so the brief
-   *  never shows a stale explanation for a different scenario */
+  /** ties the saved narrative to the exact state it described. Callers should
+   *  ALSO pass this as the React `key` so the panel resets instantly when the
+   *  scenario changes — a stale narrative must never sit under fresh numbers. */
   contextKey?: string;
 }) {
   const [status, setStatus] = useState<Status>("idle");
   const [explanation, setExplanation] = useState("");
+  const controllerRef = useRef<AbortController | null>(null);
+
+  // abort any in-flight request if this panel unmounts (e.g. scenario change
+  // remounts it via key) — the late response can never paint over fresh data.
+  useEffect(() => () => controllerRef.current?.abort(), []);
 
   async function run() {
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
+    // the exact state this request describes — defense beyond abort
+    const firedFor = contextKey;
     setStatus("loading");
     try {
       const res = await fetch("/api/explain", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ kind, depth, payload: { kind, ...getPayload() } }),
+        signal: controller.signal,
       });
       const data = await res.json();
+      // drop if aborted or the world moved on while we waited
+      if (controller.signal.aborted || firedFor !== contextKey) return;
       if (!res.ok || !data.explanation) {
         setStatus("error");
         return;
       }
       setExplanation(data.explanation);
       setStatus("done");
-      // persist so it can travel into the risk brief
+      // persist so it can travel into the risk brief — keyed to this exact state
       if (contextKey) {
         useKerfStore.getState().setExplanation({
           contextKey,
@@ -59,7 +73,9 @@ export function ExplanationPanel({
           tier: data.tier ?? "",
         });
       }
-    } catch {
+    } catch (err) {
+      if (controller.signal.aborted) return; // expected on scenario change
+      if (err instanceof DOMException && err.name === "AbortError") return;
       setStatus("error");
     }
   }

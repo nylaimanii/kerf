@@ -1,4 +1,5 @@
 import type { OperatorConcentrationView } from "@/lib/store";
+import { ConfidenceDot } from "@/components/TrackedValue";
 
 // Operator → accent. TSMC is the story, so it gets the deep-green fill that
 // reads as "the incumbent"; everyone else is a quiet ink. Length carries the
@@ -49,13 +50,19 @@ export function ConcentrationCard({
                 style={{ width: `${(share / max) * 100}%` }}
               />
             </span>
-            <span className="font-mono text-sm tabular-nums text-ink">
+            <span className="flex items-center gap-1.5 font-mono text-sm tabular-nums text-ink">
               {share.toFixed(1)}
               <span className="text-ink/45">%</span>
+              <ConfidenceDot confidence={conc.weakestInput} />
             </span>
           </li>
         ))}
       </ul>
+
+      <p className="mt-5 font-mono text-[11px] leading-snug text-ink/40">
+        shares shown to 1 decimal; HHI is computed from unrounded shares (so it
+        won&rsquo;t reproduce exactly from the rounded figures above).
+      </p>
     </article>
   );
 }

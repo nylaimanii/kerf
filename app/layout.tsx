@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fraunces, Libre_Franklin, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -26,6 +26,13 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "kerf",
   description: "the gap between supply and demand, mapped.",
+};
+
+// explicit so real phones use the device width (CDP emulation can mask a
+// missing viewport meta — real devices cannot)
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({
