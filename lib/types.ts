@@ -38,7 +38,18 @@ export interface Tracked<T> {
   provenance: Provenance;
 }
 
-export type Operator = "TSMC" | "Amkor" | "Samsung" | "Intel" | "SK hynix" | "Micron";
+// Open unions: the known advanced-packaging operators keep autocomplete, but the
+// engine is general — the 2021 auto case study carries foundry/IDM labels too.
+// (`& {}` keeps literal suggestions while allowing any string. No math depends on
+// the specific value — it's only ever used as a grouping key / display label.)
+export type Operator =
+  | "TSMC"
+  | "Amkor"
+  | "Samsung"
+  | "Intel"
+  | "SK hynix"
+  | "Micron"
+  | (string & {});
 
 export type PackagingTechnology =
   | "CoWoS-S"
@@ -46,7 +57,8 @@ export type PackagingTechnology =
   | "CoWoS-R"
   | "InFO"
   | "SoIC"
-  | "HBM-stack";
+  | "HBM-stack"
+  | (string & {}); // open — the 2021 case uses mature-node logic labels
 
 export interface PackagingFacility {
   id: string;
@@ -65,7 +77,8 @@ export type Customer =
   | "Google"
   | "Amazon"
   | "Broadcom"
-  | "Microsoft";
+  | "Microsoft"
+  | (string & {}); // open — the 2021 case uses auto chipmaker labels
 
 export interface Booking {
   id: string;
