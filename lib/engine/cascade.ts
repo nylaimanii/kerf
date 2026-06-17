@@ -138,24 +138,27 @@ export function simulateDisruption(
   });
 
   // ── Step 3: chips depending on this facility take a proportional hit ───────
-  // A chip depends on N facilities at once (conjunctive). We model this facility
-  // as carrying an equal 1/N share of the chip's supply, so a lostFraction loss
-  // here dents the chip's output by lostFraction × (1/N). This is conservative:
-  // it treats supply lines as parallel-contributing rather than a hard
-  // single-line bottleneck (the real world sits between the two).
+  // A chip depends on several facilities at once (conjunctive). Each dependency
+  // carries a modeled weight = its share of the chip's supply chain, so a
+  // lostFraction loss here dents the chip's output by lostFraction × weight.
+  // (Same proportional model as before — we now read the authored weight instead
+  // of assuming an equal 1/N split.) Conservative: parallel-contributing supply
+  // lines rather than a hard single-line bottleneck.
   const affectedChips: AffectedChip[] = chips
-    .filter((c) => c.dependsOn.includes(facilityId))
+    .filter((c) => c.dependsOn.some((d) => d.facilityId === facilityId))
     .map((c) => {
-      const relianceWeight = 1 / c.dependsOn.length;
+      const dependency = c.dependsOn.find((d) => d.facilityId === facilityId)!;
+      consumedConfidence.push(dependency.weight.provenance.confidence);
+      const relianceWeight = dependency.weight.value;
       const hitPct = lostFraction * relianceWeight * 100;
       return {
         chipId: c.id,
         name: c.name,
         vendor: c.vendor,
         estimatedCapacityHitPct: hitPct,
-        reason: `${facility.name} is 1 of ${c.dependsOn.length} supply dependencies (~${Math.round(
+        reason: `${facility.name} carries ~${Math.round(
           relianceWeight * 100,
-        )}% of its chain); a ${Math.round(
+        )}% of ${c.name}'s supply chain (1 of ${c.dependsOn.length} dependencies); a ${Math.round(
           lostFraction * 100,
         )}% loss there ≈ ${hitPct.toFixed(1)}% output hit`,
       };

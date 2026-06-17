@@ -26,6 +26,9 @@ export interface Provenance {
   note?: string;
 }
 
+/** The three-way honesty grade, extracted for convenience. */
+export type Confidence = Provenance["confidence"];
+
 /**
  * THE pattern. A value bound to its provenance.
  * Every capacity, share, and year in kerf is a Tracked<T> — never bare.
@@ -72,11 +75,23 @@ export interface Booking {
   throughYear: Tracked<number>; // "booked through" year
 }
 
+/**
+ * One supply dependency of a chip: a facility it relies on, plus how much of the
+ * chip's overall supply exposure routes through it. Weights for a chip are
+ * authored to sum to ~1.0, so weight.value reads directly as that facility's
+ * share of the chip's supply chain. The weight is always a modeled/estimated
+ * split (no vendor discloses exact sourcing magnitudes) — hence Tracked.
+ */
+export interface ChipDependency {
+  facilityId: string;
+  weight: Tracked<number>; // share of the chip's supply exposure (0–1)
+}
+
 export interface Chip {
   id: string;
   name: string; // e.g. "H100"
   vendor: Customer;
-  dependsOn: string[]; // facilityIds this chip's supply depends on
+  dependsOn: ChipDependency[]; // weighted facility dependencies
   notes?: string;
 }
 

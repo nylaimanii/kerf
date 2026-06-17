@@ -6,14 +6,14 @@
 // dependency set in one operator, or one country?
 //
 // HONEST WEIGHTING CHOICE — read this:
-//   We weight each dependency EQUALLY (by count), NOT by capacity. The dependent
-//   facilities use incompatible units (CoWoS wafers/mo vs HBM stacks/mo), so
-//   capacity-weighting would let the larger-unit facility dominate purely as a
-//   unit artifact — e.g. a chip would look "Korea-concentrated" only because HBM
-//   stacks are counted in bigger numbers than wafers. For conjunctive supply
-//   chains, concentration-by-presence is the defensible, unit-clean measure.
-//   topOperatorShare = 0.67 means "two of this chip's three dependencies sit with
-//   one operator," not a capacity fraction.
+//   Each dependency carries an explicit MODELED weight (ChipDependency.weight) =
+//   the share of the chip's supply exposure that routes through it. We do NOT
+//   weight by facility capacity: the dependent facilities use incompatible units
+//   (CoWoS wafers/mo vs HBM stacks/mo), so capacity-weighting would let the
+//   larger-unit facility dominate purely as a unit artifact. The per-chip weights
+//   live in lib/data/chips.ts and are graded estimated/modeled, never disclosed.
+//   topOperatorShare = 0.62 means "~62% of this chip's supply exposure sits with
+//   one operator," summed from those weights (normalized to the resolved set).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import type { Booking, Chip, PackagingFacility } from "@/lib/types";
@@ -59,17 +59,32 @@ export function chipExposure(
   facilities: PackagingFacility[],
   _bookings: Booking[],
 ): ChipExposure {
+  // resolve each weighted dependency to its facility (drop any unknown ids)
   const deps = chip.dependsOn
-    .map((id) => facilities.find((f) => f.id === id))
-    .filter((f): f is PackagingFacility => Boolean(f));
+    .map((d) => {
+      const facility = facilities.find((f) => f.id === d.facilityId);
+      return facility
+        ? {
+            facility,
+            weight: d.weight.value,
+            weightConfidence: d.weight.provenance.confidence,
+          }
+        : null;
+    })
+    .filter((d): d is NonNullable<typeof d> => d !== null);
 
-  const n = deps.length;
+  // normalize by the resolved weight total so shares stay 0–1 even if a weight
+  // resolved away (in seed data the weights already sum to ~1).
+  const total = deps.reduce((s, d) => s + d.weight, 0) || 1;
+
   const byOperator: Record<string, number> = {};
   const byCountry: Record<string, number> = {};
 
-  for (const f of deps) {
-    byOperator[f.operator] = (byOperator[f.operator] ?? 0) + 1 / n;
-    byCountry[f.country] = (byCountry[f.country] ?? 0) + 1 / n;
+  for (const { facility, weight } of deps) {
+    const share = weight / total;
+    byOperator[facility.operator] =
+      (byOperator[facility.operator] ?? 0) + share;
+    byCountry[facility.country] = (byCountry[facility.country] ?? 0) + share;
   }
 
   const [topOperator, topOperatorShare] = topEntry(byOperator);
@@ -83,9 +98,12 @@ export function chipExposure(
     topOperatorShare,
     topCountry,
     topCountryShare,
-    weakestInput: weakestConfidence(
-      deps.map((f) => f.monthlyCapacity.provenance.confidence),
-    ),
+    // honesty propagates: the exposure rests on BOTH the facility capacities and
+    // the modeled dependency weights — surface the weakest of all of them.
+    weakestInput: weakestConfidence([
+      ...deps.map((d) => d.facility.monthlyCapacity.provenance.confidence),
+      ...deps.map((d) => d.weightConfidence),
+    ]),
   };
 }
 
@@ -119,12 +137,12 @@ export function findSPOFs(
 
     if (exposure.topOperatorShare > threshold && exposure.topOperator) {
       reasons.push(
-        `${Math.round(exposure.topOperatorShare * 100)}% of dependencies on a single operator (${exposure.topOperator})`,
+        `${Math.round(exposure.topOperatorShare * 100)}% of supply exposure on a single operator (${exposure.topOperator})`,
       );
     }
     if (exposure.topCountryShare > threshold && exposure.topCountry) {
       reasons.push(
-        `${Math.round(exposure.topCountryShare * 100)}% of dependencies in a single country (${exposure.topCountry})`,
+        `${Math.round(exposure.topCountryShare * 100)}% of supply exposure in a single country (${exposure.topCountry})`,
       );
     }
 

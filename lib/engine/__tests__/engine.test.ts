@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import type { Booking, Chip, PackagingFacility } from "@/lib/types";
+import type {
+  Booking,
+  Chip,
+  ChipDependency,
+  PackagingFacility,
+} from "@/lib/types";
 import {
   chips as seedChips,
   facilities as seedFacilities,
@@ -33,6 +38,15 @@ const fac = (
   monthlyCapacity: {
     value,
     provenance: { source: "test", confidence, asOf: "2026-01-01" },
+  },
+});
+
+// weighted chip dependency
+const wdep = (facilityId: string, weight: number): ChipDependency => ({
+  facilityId,
+  weight: {
+    value: weight,
+    provenance: { source: "test", confidence: "modeled", asOf: "2026-01-01" },
   },
 });
 
@@ -101,40 +115,71 @@ describe("findSPOFs", () => {
     fac("f-kr", "SK hynix", "South Korea", 100, "disclosed", "stacks/mo"),
   ];
 
-  it("trips a chip whose whole dependency set is one operator/country", () => {
+  it("trips a chip whose weighted exposure concentrates in one operator/country", () => {
     const chip: Chip = {
       id: "z",
       name: "Z",
       vendor: "NVIDIA",
-      dependsOn: ["f-tw-1", "f-tw-2", "f-tw-3"],
+      dependsOn: [wdep("f-tw-1", 0.5), wdep("f-tw-2", 0.3), wdep("f-tw-3", 0.2)],
     };
     const spofs = findSPOFs([chip], facs, []);
     expect(spofs).toHaveLength(1);
     expect(spofs[0].topOperator).toBe("TSMC");
-    expect(spofs[0].topOperatorShare).toBe(1);
+    expect(spofs[0].topOperatorShare).toBe(1); // all weight on TSMC/Taiwan
     expect(spofs[0].topCountry).toBe("Taiwan");
     expect(spofs[0].reasons.length).toBeGreaterThanOrEqual(2);
   });
 
-  it("does NOT trip a chip split 50/50 across two countries", () => {
+  it("reads weights, not counts: a Taiwan-heavy 70/30 split trips on country", () => {
+    // 70% weight on a Taiwan facility, 30% on Korea → Taiwan 0.7 > 0.6 threshold,
+    // even though it's a 50/50 split BY COUNT.
+    const chip: Chip = {
+      id: "w",
+      name: "W",
+      vendor: "NVIDIA",
+      dependsOn: [wdep("f-tw-1", 0.7), wdep("f-kr", 0.3)],
+    };
+    const spofs = findSPOFs([chip], facs, []);
+    expect(spofs).toHaveLength(1);
+    expect(spofs[0].topCountry).toBe("Taiwan");
+    expect(spofs[0].topCountryShare).toBeCloseTo(0.7, 10);
+  });
+
+  it("does NOT trip a chip whose top exposure is 50/50 (at, not past, threshold)", () => {
     const chip: Chip = {
       id: "y",
       name: "Y",
       vendor: "NVIDIA",
-      dependsOn: ["f-tw-1", "f-kr"],
+      dependsOn: [wdep("f-tw-1", 0.5), wdep("f-kr", 0.5)],
     };
     expect(findSPOFs([chip], facs, [])).toHaveLength(0);
   });
 
-  it("seed data flags H200, B200 and MI300X (Taiwan concentration)", () => {
+  it("seed data: differentiated exposures flag H100/H200/B200/MI300X, not TPU/Trainium2", () => {
+    // After differentiating supply geographies, the top exposures spread:
+    //   B200 ~76% TW · H200 ~70% TW · MI300X ~65% TSMC · H100 ~62% TW  → trip
+    //   Trainium2 ~55% · TPU ~40% (diversified)                        → do not
     const flagged = findSPOFs(seedChips, seedFacilities, seedBookings).map(
       (s) => s.chipId,
     );
+    expect(flagged).toContain("nvda-h100");
     expect(flagged).toContain("nvda-h200");
     expect(flagged).toContain("nvda-b200");
     expect(flagged).toContain("amd-mi300x");
-    // a 50/50 split chip should NOT be flagged
-    expect(flagged).not.toContain("nvda-h100");
+    // the diversified hyperscaler ASICs stay below the threshold
+    expect(flagged).not.toContain("google-tpu-v5");
+    expect(flagged).not.toContain("amzn-trainium2");
+  });
+
+  it("seed data: B200 is the highest-exposure standout (~76% Taiwan)", () => {
+    const spofs = findSPOFs(seedChips, seedFacilities, seedBookings);
+    const b200 = spofs.find((s) => s.chipId === "nvda-b200")!;
+    expect(b200.topCountry).toBe("Taiwan");
+    expect(b200.topCountryShare).toBeCloseTo(0.76, 10);
+    const maxShare = Math.max(
+      ...spofs.map((s) => Math.max(s.topCountryShare, s.topOperatorShare)),
+    );
+    expect(Math.max(b200.topCountryShare, b200.topOperatorShare)).toBe(maxShare);
   });
 });
 
@@ -159,8 +204,10 @@ describe("simulateDisruption (cascade)", () => {
       },
     },
   ];
+  // Z leans 50% on A; W leans 80% on A — to prove cascade reads the weight.
   const chips: Chip[] = [
-    { id: "Z", name: "Z", vendor: "NVIDIA", dependsOn: ["A", "B"] },
+    { id: "Z", name: "Z", vendor: "NVIDIA", dependsOn: [wdep("A", 0.5), wdep("B", 0.5)] },
+    { id: "W", name: "W", vendor: "AMD", dependsOn: [wdep("A", 0.8), wdep("B", 0.2)] },
   ];
 
   const result = simulateDisruption("A", -50, { facilities, bookings, chips });
@@ -175,14 +222,18 @@ describe("simulateDisruption (cascade)", () => {
     expect(result.affectedCustomers[0].lostCapacity).toBe(250); // 50% of 500
   });
 
-  it("a dependent chip takes a proportional (1/N) hit", () => {
-    expect(result.affectedChips).toHaveLength(1);
-    // lostFraction 0.5 × reliance 1/2 × 100 = 25%
-    expect(result.affectedChips[0].estimatedCapacityHitPct).toBe(25);
+  it("a dependent chip's hit scales with its dependency WEIGHT", () => {
+    expect(result.affectedChips).toHaveLength(2);
+    const z = result.affectedChips.find((c) => c.chipId === "Z")!;
+    const w = result.affectedChips.find((c) => c.chipId === "W")!;
+    // lostFraction 0.5 × weight 0.5 × 100 = 25%
+    expect(z.estimatedCapacityHitPct).toBe(25);
+    // lostFraction 0.5 × weight 0.8 × 100 = 40% — heavier reliance, bigger hit
+    expect(w.estimatedCapacityHitPct).toBe(40);
   });
 
   it("rolls up a deterministic systemic severity", () => {
-    // pool = wafers/mo only (A); directLoss 500/1000 = 0.5; breadth 1/1 = 1
+    // pool = wafers/mo only (A); directLoss 500/1000 = 0.5; breadth 2/2 = 1
     // severity = 0.6×0.5 + 0.4×1 = 0.7  → critical
     expect(result.systemicSeverity).toBeCloseTo(0.7, 10);
     expect(result.severityLabel).toBe("critical");
@@ -202,7 +253,9 @@ describe("simulateDisruption (cascade)", () => {
   it("a non-negative delta removes nothing", () => {
     const r = simulateDisruption("A", 10, { facilities, bookings, chips });
     expect(r.directLoss.lostCapacity).toBe(0);
-    expect(r.affectedChips[0].estimatedCapacityHitPct).toBe(0);
+    expect(r.affectedChips.every((c) => c.estimatedCapacityHitPct === 0)).toBe(
+      true,
+    );
   });
 });
 
